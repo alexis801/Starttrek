@@ -1,3 +1,10 @@
+##
+## EPITECH PROJECT, 2026
+## star-trek
+## File description:
+## seed.py
+##
+
 # fixe les seed aleatoire
 
 import random
@@ -11,3 +18,10 @@ def set_seed(seed):
 
     #numpy use for gymnasium et calcults matrices
     np.random.seed(seed)
+
+    # torch cpu init poids , morceau  du replay buffer
+    torch.manual_seed(seed)
+
+    # torch gpu, cuda ok = seed gpu 
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
