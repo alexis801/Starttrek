@@ -1,3 +1,10 @@
+##
+## EPITECH PROJECT, 2026
+## star-trek
+## File description:
+## eval.py
+##
+
 import gymnasium as gym
 import torch
 

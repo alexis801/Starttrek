@@ -1,3 +1,10 @@
+##
+## EPITECH PROJECT, 2026
+## star-trek
+## File description:
+## config.py
+##
+
 # path : obj pour manipuler les chemins
 # gere les differnets config
 from pathlib import Path
