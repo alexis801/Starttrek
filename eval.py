@@ -5,11 +5,19 @@
 ## eval.py
 ##
 
+import argparse
+import csv
 import gymnasium as gym
+import torch
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Optional
 
-SEED = 42
-NUM_EPISODES = 5
+DEFAULT_SEED = 42
+DEFAULT_NUM_EPISODES = 5
+DEFAULT_MODEL_PATH = "model.pth"
+DEFAULT_RENDER_MODE = "rgb_array"
+DEFAULT_CSV_OUTPUT = "stats/csv/eval_results.csv"
 
 @dataclass
 class EpisodeResult:
@@ -17,17 +25,48 @@ class EpisodeResult:
     terminated: bool
     truncated: bool
 
-def create_env() -> gym.Env:
-    return gym.make("LunarLander-v3", render_mode="rgb_array")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Evaluate a LunarLander-v3 policy."
+    )
+    parser.add_argument("--model", default=DEFAULT_MODEL_PATH)
+    parser.add_argument("--episodes", type=int, default=DEFAULT_NUM_EPISODES)
+    parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    parser.add_argument("--render-mode", default=DEFAULT_RENDER_MODE)
+    parser.add_argument("--csv-out", default=DEFAULT_CSV_OUTPUT)
+    return parser.parse_args()
 
-def run_episode(env: gym.Env, seed: int) -> EpisodeResult:
-    obs, info = env.reset(seed=seed)
+
+def create_env(render_mode: str) -> gym.Env:
+    return gym.make("LunarLander-v3", render_mode=render_mode)
+
+def load_model(model_path: str) -> Optional[Any]:
+    path = Path(model_path)
+    if not path.exists():
+        print(f"No model found at '{model_path}', using random policy.")
+        return None
+    model = torch.load(path, map_location=torch.device("cpu"))
+    if hasattr(model, "eval"):
+        model.eval()
+    return model
+
+def select_action(env: gym.Env, obs: Any, model: Optional[Any]) -> int:
+    if model is None:
+        return int(env.action_space.sample())
+    obs_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+    with torch.no_grad():
+        q_values = model(obs_tensor)
+        action = int(torch.argmax(q_values, dim=1).item())
+    return action
+
+def run_episode(env: gym.Env, seed: int, model: Optional[Any]) -> EpisodeResult:
+    obs, _ = env.reset(seed=seed)
     total_reward = 0.0
     terminated = truncated = False
 
     while not (terminated or truncated):
-        action = env.action_space.sample()
-        obs, reward, terminated, truncated, info = env.step(action)
+        action = select_action(env, obs, model)
+        obs, reward, terminated, truncated, _ = env.step(action)
         total_reward += float(reward)
 
     return EpisodeResult(
@@ -36,14 +75,15 @@ def run_episode(env: gym.Env, seed: int) -> EpisodeResult:
         truncated=truncated,
     )
 
-def evaluate_random_policy(
+def evaluate_policy(
     env: gym.Env,
     num_episodes: int,
     base_seed: int,
+    model: Optional[Any],
 ) -> list[EpisodeResult]:
     results = []
     for episode_idx in range(num_episodes):
-        results.append(run_episode(env, base_seed + episode_idx))
+        results.append(run_episode(env, base_seed + episode_idx, model))
     return results
 
 def print_episode_results(results: list[EpisodeResult]) -> None:
@@ -57,14 +97,48 @@ def print_episode_results(results: list[EpisodeResult]) -> None:
 
 def print_summary(results: list[EpisodeResult]) -> None:
     mean_reward = sum(result.reward for result in results) / len(results)
+    terminated_count = sum(1 for result in results if result.terminated)
+    truncated_count = sum(1 for result in results if result.truncated)
+    min_reward = min(result.reward for result in results)
+    max_reward = max(result.reward for result in results)
     print(f"Mean reward over {len(results)} episodes: {mean_reward:.2f}")
+    print(
+        "Termination stats: "
+        f"terminated={terminated_count} truncated={truncated_count}"
+    )
+    print(f"Reward range: min={min_reward:.2f} max={max_reward:.2f}")
+
+
+def save_results_to_csv(results: list[EpisodeResult], output_path: str) -> None:
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_file, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(["episode", "reward", "terminated", "truncated"])
+        for episode_idx, result in enumerate(results, start=1):
+            writer.writerow(
+                [
+                    episode_idx,
+                    f"{result.reward:.6f}",
+                    int(result.terminated),
+                    int(result.truncated),
+                ]
+            )
+    print(f"Saved episode results to '{output_file}'.")
 
 def main() -> None:
-    env = create_env()
-    results = evaluate_random_policy(env, NUM_EPISODES, SEED)
-    print_episode_results(results)
-    print_summary(results)
-    env.close()
+    args = parse_args()
+    if args.episodes <= 0:
+        raise ValueError("--episodes must be greater than 0")
+    env = create_env(args.render_mode)
+    try:
+        model = load_model(args.model)
+        results = evaluate_policy(env, args.episodes, args.seed, model)
+        print_episode_results(results)
+        print_summary(results)
+        save_results_to_csv(results, args.csv_out)
+    finally:
+        env.close()
 
 if __name__ == "__main__":
     main()
