@@ -11,7 +11,7 @@ import random
 import numpy as np
 import torch
 
-def set_seed(seed):
+def set_seed(seed: int) -> None:
 
     #random en python
     random.seed(seed)
