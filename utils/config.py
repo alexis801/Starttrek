@@ -26,3 +26,24 @@ def load_config(path):
     if config is None:
         raise ValueError(f"Config file is empty: {path}")
     return config
+
+def merge_configs(base, override):
+
+    # fusione deux configs recursive.
+    # Les valeurs override ecrasent base.
+
+    result = base.copy()
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = merge_configs(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+def load_merged_config(default_path, override_path):
+
+    # charge .yaml overide specifique et fusion
+    base = load_config(default_path)
+    override = load_config(override_path)
+
+    return merge_configs(base, override)

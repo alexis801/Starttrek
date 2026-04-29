@@ -1,0 +1,22 @@
+##
+## EPITECH PROJECT, 2025
+## star-trek
+## File description:
+## default.yaml
+##
+
+# cofig par defaut du yaml, tout les params sont par defaut aussi
+# ne pas modifier, creer un autre yaml (train, eval) et overide le default avec
+
+env:
+  name: "LunarLander-v3"
+  render_mode: "rgb_array"
+
+seeds:
+  base: 0
+
+hyperparameters:
+  lr: 0.001
+  gamma: 0.99
+  batch_size: 64
+  buffer_size: 100000
