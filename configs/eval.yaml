@@ -1,0 +1,20 @@
+##
+## EPITECH PROJECT, 2025
+## star-trek
+## File description:
+## eval.yaml
+##
+
+# overide eval, fusione avec default.yaml
+# ne pas dupliquer les params de default.yaml
+
+eval:
+  num_episodes: 100
+  model_path: "models/model.pth"
+  csv_output: "stats/csv/eval_results.csv"
+
+env:
+  render_mode: "rgb_array"
+
+seeds:
+  base: 42
