@@ -2,60 +2,99 @@ import gymnasium as gym
 import torch
 import torch.nn as nn
 import random
+from collections import deque
+import torch.optim as optim
 
-epsilon = 0.1
+class QNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(8, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, 4)
+        )
+    def forward(self, x):
+        return self.net(x)
+
+model = QNetwork()
+target_model = QNetwork()
+target_model.load_state_dict(model.state_dict())
+
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+loss_fn = nn.MSELoss()
+
+epsilon = 1.0
+epsilon_min = 0.05
+epsilon_decay = 0.995
+gamma = 0.99
+buffer = deque(maxlen=50000)
+
+def store(obs, action, reward, next_obs, done):
+    buffer.append((obs, action, reward, next_obs, done))
 
 def policy(obs, env):
     if random.random() < epsilon:
         return env.action_space.sample()
+    obs_t = torch.tensor(obs, dtype=torch.float32)
+    return torch.argmax(model(obs_t)).item()
 
-    x, y, vx, vy, angle, v_angle, left, right = obs
+def train():
+    batch_size = 64
 
-    if angle > 0.1:
-        return 3
-    elif angle < -0.1:
-        return 1
-    elif vy < -0.5:
-        return 2
-    else:
-        return 0
+    if len(buffer) < batch_size:
+        return
+    batch = random.sample(buffer, batch_size)
+    obs, actions, rewards, next_obs, dones = zip(*batch)
 
-def episode_loop(env, episode_over, total_reward, obs):
-    while not episode_over:
+    obs = torch.tensor(obs, dtype=torch.float32)
+    actions = torch.tensor(actions)
+    rewards = torch.tensor(rewards, dtype=torch.float32)
+    next_obs = torch.tensor(next_obs, dtype=torch.float32)
+    dones = torch.tensor(dones, dtype=torch.float32)
+
+    q = model(obs).gather(1, actions.unsqueeze(1)).squeeze()
+    next_q = target_model(next_obs).max(1)[0]
+    target = rewards + gamma * next_q * (1 - dones)
+
+    loss = loss_fn(q, target.detach())
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+def episode_loop(env):
+    obs, _ = env.reset()
+    done = False
+    total = 0
+
+    while not done:
         action = policy(obs, env)
-        obs, reward, terminated, truncated, info = env.step(action)
+        next_obs, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+        store(obs, action, reward, next_obs, done)
+        obs = next_obs
+        total += reward
+        train()
 
-        total_reward += reward
-        episode_over = terminated or truncated
-    print(f"Episode finished! Total reward: {total_reward}")
-
-def episode_handling(env, obs, rewards_log):
-    episode_over = False
-    total_reward = 0
-
-    while not episode_over:
-        action = policy(obs, env)
-        obs, reward, terminated, truncated, info = env.step(action)
-
-        total_reward += reward
-        episode_over = terminated or truncated
-
-    rewards_log.append(total_reward)
+    return total
 
 def main():
-    SEED = 42
+    global epsilon
     env = gym.make("LunarLander-v3")
-
-    rewards_log = []
+    rewards = []
 
     for episode in range(100):
-        obs, info = env.reset()
-        episode_handling(env, obs, rewards_log)
+        r = episode_loop(env)
+        rewards.append(r)
+        epsilon = max(epsilon_min, epsilon * epsilon_decay)
 
-    print(sum(rewards_log) / len(rewards_log))
+        if episode % 10 == 0:
+            target_model.load_state_dict(model.state_dict())
+            print(episode)
 
     env.close()
-    # torch.save(env.state_dict(), "model.pth")
+    torch.save(model.state_dict(), "model.pth")
 
 if __name__ == "__main__":
     main()
