@@ -21,12 +21,12 @@ def episode_handling(env, obs):
 
 def main():
     SEED = 42
-    env = gym.make("LunarLander-v3", render_mode="human")
+    env = gym.make("LunarLander-v3")
 
-    obs, info = env.reset(seed=SEED)
-    print(f"Starting observation: {obs}")
+    for episode in range(100):
+        obs, info = env.reset(seed=SEED + episode)
+        episode_handling(env, obs)
 
-    episode_handling(env, obs)
     env.close()
     # torch.save(env.state_dict(), "model.pth")
 
