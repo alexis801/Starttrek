@@ -56,7 +56,7 @@ pip install -r requirements.txt
 ---
 
 
-## 🚀 Uttilisation
+## 🚀 Utilisation
 
 Entrainer l'agent:
 
