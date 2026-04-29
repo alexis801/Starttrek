@@ -25,7 +25,7 @@ target_model.load_state_dict(model.state_dict())
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 loss_fn = nn.MSELoss()
 
-epsilon = 1.0
+
 epsilon_min = 0.05
 epsilon_decay = 0.995
 gamma = 0.99
@@ -34,7 +34,7 @@ buffer = deque(maxlen=50000)
 def store(obs, action, reward, next_obs, done):
     buffer.append((obs, action, reward, next_obs, done))
 
-def policy(obs, env):
+def policy(obs, env, epsilon):
     if random.random() < epsilon:
         return env.action_space.sample()
     obs_t = torch.tensor(obs, dtype=torch.float32)
@@ -63,13 +63,13 @@ def train():
     loss.backward()
     optimizer.step()
 
-def episode_loop(env):
+def episode_loop(env, epsilon):
     obs, _ = env.reset()
     done = False
     total = 0
 
     while not done:
-        action = policy(obs, env)
+        action = policy(obs, env, epsilon)
         next_obs, reward, terminated, truncated, _ = env.step(action)
         done = terminated or truncated
         store(obs, action, reward, next_obs, done)
@@ -80,12 +80,12 @@ def episode_loop(env):
     return total
 
 def main():
-    global epsilon
+    epsilon = 1.0
     env = gym.make("LunarLander-v3")
     rewards = []
 
     for episode in range(100):
-        r = episode_loop(env)
+        r = episode_loop(env, epsilon)
         rewards.append(r)
         epsilon = max(epsilon_min, epsilon * epsilon_decay)
 
