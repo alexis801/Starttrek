@@ -9,6 +9,7 @@ import argparse
 import csv
 import gymnasium as gym
 import torch
+import torch.nn as nn
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
@@ -18,6 +19,40 @@ DEFAULT_NUM_EPISODES = 5
 DEFAULT_MODEL_PATH = "model.pth"
 DEFAULT_RENDER_MODE = "rgb_array"
 DEFAULT_CSV_OUTPUT = "stats/csv/eval_results.csv"
+
+def resolve_model_path(model_path: str) -> Optional[Path]:
+    requested_path = Path(model_path)
+    if requested_path.exists():
+        return requested_path
+
+    if model_path == DEFAULT_MODEL_PATH:
+        fallback_paths = [
+            Path("models") / "model.pth",
+            Path("modele.pth"),
+            Path("modèle.pth"),
+            Path("models") / "modele.pth",
+            Path("models") / "modèle.pth",
+        ]
+        for fallback_path in fallback_paths:
+            if fallback_path.exists():
+                print(f"Using fallback model path '{fallback_path}'.")
+                return fallback_path
+
+    return None
+
+class QNetwork(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(8, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, 4),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
 
 @dataclass
 class EpisodeResult:
@@ -41,14 +76,25 @@ def create_env(render_mode: str) -> gym.Env:
     return gym.make("LunarLander-v3", render_mode=render_mode)
 
 def load_model(model_path: str) -> Optional[Any]:
-    path = Path(model_path)
-    if not path.exists():
+    path = resolve_model_path(model_path)
+    if path is None:
         print(f"No model found at '{model_path}', using random policy.")
         return None
-    model = torch.load(path, map_location=torch.device("cpu"))
-    if hasattr(model, "eval"):
+
+    loaded_object = torch.load(path, map_location=torch.device("cpu"))
+    if isinstance(loaded_object, nn.Module):
+        loaded_object.eval()
+        return loaded_object
+
+    if isinstance(loaded_object, dict):
+        model = QNetwork()
+        model.load_state_dict(loaded_object)
         model.eval()
-    return model
+        return model
+
+    raise TypeError(
+        f"Unsupported model format at '{model_path}': {type(loaded_object).__name__}"
+    )
 
 def select_action(env: gym.Env, obs: Any, model: Optional[Any]) -> int:
     if model is None:
