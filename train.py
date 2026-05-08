@@ -22,12 +22,12 @@ model = QNetwork()
 target_model = QNetwork()
 target_model.load_state_dict(model.state_dict())
 
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-loss_fn = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=1e-4)
+loss_fn = nn.SmoothL1Loss()
 
 
 epsilon_min = 0.05
-epsilon_decay = 0.995
+epsilon_decay = 0.998
 gamma = 0.99
 buffer = deque(maxlen=50000)
 
@@ -61,6 +61,7 @@ def train():
     loss = loss_fn(q, target.detach())
     optimizer.zero_grad()
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     optimizer.step()
 
 def episode_loop(env, epsilon):
@@ -75,7 +76,8 @@ def episode_loop(env, epsilon):
         store(obs, action, reward, next_obs, done)
         obs = next_obs
         total += reward
-        train()
+        if len(buffer) > 5000:
+            train()
 
     return total
 
@@ -84,7 +86,7 @@ def main():
     env = gym.make("LunarLander-v3")
     rewards = []
 
-    for episode in range(100):
+    for episode in range(2000):
         r = episode_loop(env, epsilon)
         rewards.append(r)
         epsilon = max(epsilon_min, epsilon * epsilon_decay)
