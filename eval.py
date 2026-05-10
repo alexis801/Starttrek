@@ -13,6 +13,7 @@ import torch.nn as nn
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
+from basic import *
 
 DEFAULT_SEED = 42
 DEFAULT_NUM_EPISODES = 5
@@ -69,6 +70,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--render-mode", default=DEFAULT_RENDER_MODE)
     parser.add_argument("--csv-out", default=DEFAULT_CSV_OUTPUT)
+    parser.add_argument("--policy", choices=["basic", "dqn"], default="dqn",
+)
     return parser.parse_args()
 
 
@@ -96,22 +99,25 @@ def load_model(model_path: str) -> Optional[Any]:
         f"Unsupported model format at '{model_path}': {type(loaded_object).__name__}"
     )
 
-def select_action(env: gym.Env, obs: Any, model: Optional[Any]) -> int:
+def select_action(
+    env: gym.Env, obs: Any, policy_type: str, model: Optional[Any],) -> int:
+
+    if policy_type == "basic":
+        return basic_policy(obs)
     if model is None:
-        return int(env.action_space.sample())
+        raise ValueError("DQN policy selected but no model find")
     obs_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
     with torch.no_grad():
         q_values = model(obs_tensor)
-        action = int(torch.argmax(q_values, dim=1).item())
-    return action
+    return int(torch.argmax(q_values, dim=1).item())
 
-def run_episode(env: gym.Env, seed: int, model: Optional[Any]) -> EpisodeResult:
+def run_episode(env: gym.Env, seed: int, policy_type: str, model: Optional[Any],) -> EpisodeResult:
     obs, _ = env.reset(seed=seed)
     total_reward = 0.0
     terminated = truncated = False
 
     while not (terminated or truncated):
-        action = select_action(env, obs, model)
+        action = select_action(env, obs, policy_type, model)
         obs, reward, terminated, truncated, _ = env.step(action)
         total_reward += float(reward)
 
@@ -121,15 +127,10 @@ def run_episode(env: gym.Env, seed: int, model: Optional[Any]) -> EpisodeResult:
         truncated=truncated,
     )
 
-def evaluate_policy(
-    env: gym.Env,
-    num_episodes: int,
-    base_seed: int,
-    model: Optional[Any],
-) -> list[EpisodeResult]:
+def evaluate_policy(env: gym.Env, num_episodes: int, base_seed: int, policy_type: str, model: Optional[Any],) -> list[EpisodeResult]:
     results = []
     for episode_idx in range(num_episodes):
-        results.append(run_episode(env, base_seed + episode_idx, model))
+        results.append(run_episode(env, base_seed + episode_idx, policy_type, model))
     return results
 
 def print_episode_results(results: list[EpisodeResult]) -> None:
@@ -178,8 +179,10 @@ def main() -> None:
         raise ValueError("--episodes must be greater than 0")
     env = create_env(args.render_mode)
     try:
-        model = load_model(args.model)
-        results = evaluate_policy(env, args.episodes, args.seed, model)
+        model = None
+        if args.policy == "dqn":
+            model = load_model(args.model)
+        results = evaluate_policy(env, args.episodes, args.seed, args.policy, model)
         print_episode_results(results)
         print_summary(results)
         save_results_to_csv(results, args.csv_out)
