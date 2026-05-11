@@ -20,6 +20,7 @@ DEFAULT_NUM_EPISODES = 5
 DEFAULT_MODEL_PATH = "model.pth"
 DEFAULT_RENDER_MODE = "rgb_array"
 DEFAULT_CSV_OUTPUT = "stats/csv/eval_results.csv"
+DEFAULT_VIDEO_DIR = "stats/videos"
 
 def resolve_model_path(model_path: str) -> Optional[Path]:
     requested_path = Path(model_path)
