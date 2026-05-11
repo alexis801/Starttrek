@@ -86,8 +86,24 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def create_env(render_mode: str) -> gym.Env:
-    return gym.make("LunarLander-v3", render_mode=render_mode)
+def create_env(
+    render_mode: str,
+    record_video: bool,
+    video_dir: str,
+) -> gym.Env:
+    gym_render_mode = "rgb_array" if record_video else render_mode
+    env = gym.make("LunarLander-v3", render_mode=gym_render_mode)
+    if record_video:
+        out = Path(video_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        env = gym.wrappers.RecordVideo(
+            env,
+            str(out),
+            episode_trigger=lambda episode_id: True,
+            name_prefix="lunar_lander",
+            disable_logger=True,
+        )
+    return env
 
 def load_model(model_path: str) -> Optional[Any]:
     path = resolve_model_path(model_path)
@@ -188,7 +204,11 @@ def main() -> None:
     args = parse_args()
     if args.episodes <= 0:
         raise ValueError("--episodes must be greater than 0")
-    env = create_env(args.render_mode)
+    if args.record_video and args.render_mode == "human":
+        print(
+            "Note: --record-video forces render_mode to rgb_array (no live window)."
+        )
+    env = create_env(args.render_mode, args.record_video, args.video_dir)
     try:
         model = None
         if args.policy == "dqn":
@@ -197,6 +217,8 @@ def main() -> None:
         print_episode_results(results)
         print_summary(results)
         save_results_to_csv(results, args.csv_out)
+        if args.record_video:
+            print(f"Videos saved under '{Path(args.video_dir).resolve()}'.")
     finally:
         env.close()
 
