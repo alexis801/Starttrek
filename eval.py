@@ -73,6 +73,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--csv-out", default=DEFAULT_CSV_OUTPUT)
     parser.add_argument("--policy", choices=["basic", "dqn"], default="dqn",
 )
+    parser.add_argument(
+        "--record-video",
+        action="store_true",
+        help="Save one MP4 per episode under --video-dir (requires rgb_array).",
+    )
+    parser.add_argument(
+        "--video-dir",
+        default=DEFAULT_VIDEO_DIR,
+        help="Directory for RecordVideo output (created if missing).",
+    )
     return parser.parse_args()
 
 
