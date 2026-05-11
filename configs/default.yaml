@@ -16,7 +16,17 @@ seeds:
   base: 0
 
 hyperparameters:
-  lr: 0.001
+  lr: 0.0001
   gamma: 0.99
   batch_size: 64
   buffer_size: 100000
+
+exploration:
+  epsilon_start: 1.0
+  epsilon_min: 0.05
+  epsilon_decay: 0.998
+
+training:
+  num_episodes: 2000
+  warmup_steps: 5000
+  target_update_every: 10
