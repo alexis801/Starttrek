@@ -7,9 +7,6 @@ import torch.optim as optim
 from utils.config import load_merged_config
 from utils.seed import set_seed
 
-#Import seed from the config file
-SEED = config["seeds"]["base"]
-
 # Config default and utilities for loading and merging YAML configs
 config = load_merged_config("configs/default.yaml", "configs/train.yaml")
 
@@ -28,6 +25,9 @@ EPS_DECAY = config["exploration"]["epsilon_decay"]
 NUM_EPISODES = config["training"]["num_episodes"]
 WARMUP_STEPS = config["training"]["warmup_steps"]
 TARGET_UPDATE_EVERY = config["training"]["target_update_every"]
+
+#Import seed from the config file
+SEED = config["seeds"]["base"]
 
 class QNetwork(nn.Module):
     def __init__(self):
