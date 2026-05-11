@@ -9,10 +9,21 @@ from utils.config import load_merged_config
 # Config default and utilities for loading and merging YAML configs
 config = load_merged_config("configs/default.yaml", "configs/train.yaml")
 
+#config
 LR = config["hyperparameters"]["lr"]
 GAMMA = config["hyperparameters"]["gamma"]
 BATCH_SIZE = config["hyperparameters"]["batch_size"]
 BUFFER_SIZE = config["hyperparameters"]["buffer_size"]
+
+#EPS
+EPS_START = config["exploration"]["epsilon_start"]
+EPS_MIN = config["exploration"]["epsilon_min"]
+EPS_DECAY = config["exploration"]["epsilon_decay"]
+
+#training
+NUM_EPISODES = config["training"]["num_episodes"]
+WARMUP_STEPS = config["training"]["warmup_steps"]
+TARGET_UPDATE_EVERY = config["training"]["target_update_every"]
 
 class QNetwork(nn.Module):
     def __init__(self):
@@ -34,9 +45,6 @@ target_model.load_state_dict(model.state_dict())
 optimizer = optim.Adam(model.parameters(), lr=LR)
 loss_fn = nn.SmoothL1Loss()
 
-
-epsilon_min = 0.05
-epsilon_decay = 0.998
 buffer = deque(maxlen=BUFFER_SIZE)
 
 def store(obs, action, reward, next_obs, done):
@@ -82,22 +90,22 @@ def episode_loop(env, epsilon):
         store(obs, action, reward, next_obs, done)
         obs = next_obs
         total += reward
-        if len(buffer) > 5000:
+        if len(buffer) > WARMUP_STEPS:
             train()
 
     return total
 
 def main():
-    epsilon = 1.0
-    env = gym.make("LunarLander-v3")
+    epsilon = EPS_START
+    env = gym.make(config["env"]["name"])
     rewards = []
 
-    for episode in range(2000):
+    for episode in range(NUM_EPISODES):
         r = episode_loop(env, epsilon)
         rewards.append(r)
-        epsilon = max(epsilon_min, epsilon * epsilon_decay)
+        epsilon = max(EPS_MIN, epsilon * EPS_DECAY)
 
-        if episode % 10 == 0:
+        if episode % TARGET_UPDATE_EVERY == 0:
             target_model.load_state_dict(model.state_dict())
             print(episode)
 
