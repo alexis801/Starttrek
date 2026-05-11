@@ -117,7 +117,7 @@ def main():
             print(episode)
 
     env.close()
-    torch.save(model.state_dict(), "model.pth")
+    torch.save(model.state_dict(), "model_dqn.pth")
 
 if __name__ == "__main__":
     main()
