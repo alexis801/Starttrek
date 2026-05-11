@@ -4,6 +4,15 @@ import torch.nn as nn
 import random
 from collections import deque
 import torch.optim as optim
+from utils.config import load_merged_config
+
+# Config default and utilities for loading and merging YAML configs
+config = load_merged_config("configs/default.yaml", "configs/train.yaml")
+
+LR = config["training"]["lr"]
+GAMMA = config["training"]["gamma"]
+BATCH_SIZE = config["training"]["batch_size"]
+BUFFER_SIZE = config["training"]["buffer_size"]
 
 class QNetwork(nn.Module):
     def __init__(self):
@@ -22,14 +31,14 @@ model = QNetwork()
 target_model = QNetwork()
 target_model.load_state_dict(model.state_dict())
 
-optimizer = optim.Adam(model.parameters(), lr=1e-4)
+optimizer = optim.Adam(model.parameters(), lr=LR)
 loss_fn = nn.SmoothL1Loss()
 
 
 epsilon_min = 0.05
 epsilon_decay = 0.998
 gamma = 0.99
-buffer = deque(maxlen=50000)
+buffer = deque(maxlen=BUFFER_SIZE)
 
 def store(obs, action, reward, next_obs, done):
     buffer.append((obs, action, reward, next_obs, done))
