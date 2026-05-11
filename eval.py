@@ -204,7 +204,11 @@ def main() -> None:
     args = parse_args()
     if args.episodes <= 0:
         raise ValueError("--episodes must be greater than 0")
-    env = create_env(args.render_mode)
+    if args.record_video and args.render_mode == "human":
+        print(
+            "Note: --record-video forces render_mode to rgb_array (no live window)."
+        )
+    env = create_env(args.render_mode, args.record_video, args.video_dir)
     try:
         model = None
         if args.policy == "dqn":
@@ -213,6 +217,8 @@ def main() -> None:
         print_episode_results(results)
         print_summary(results)
         save_results_to_csv(results, args.csv_out)
+        if args.record_video:
+            print(f"Videos saved under '{Path(args.video_dir).resolve()}'.")
     finally:
         env.close()
 
