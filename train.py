@@ -5,6 +5,10 @@ import random
 from collections import deque
 import torch.optim as optim
 from utils.config import load_merged_config
+from utils.seed import set_seed
+
+#Import seed from the config file
+SEED = config["seeds"]["base"]
 
 # Config default and utilities for loading and merging YAML configs
 config = load_merged_config("configs/default.yaml", "configs/train.yaml")
@@ -96,8 +100,11 @@ def episode_loop(env, epsilon):
     return total
 
 def main():
+    set_seed(SEED)
     epsilon = EPS_START
     env = gym.make(config["env"]["name"])
+    env.reset(seed=SEED)
+    env.action_space.seed(SEED)
     rewards = []
 
     for episode in range(NUM_EPISODES):
