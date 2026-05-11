@@ -1,0 +1,9 @@
+##
+## EPITECH PROJECT, 2026
+## star-trek
+## File description:
+## train.yaml
+##
+
+seeds:
+  base: 42
