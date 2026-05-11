@@ -9,10 +9,10 @@ from utils.config import load_merged_config
 # Config default and utilities for loading and merging YAML configs
 config = load_merged_config("configs/default.yaml", "configs/train.yaml")
 
-LR = config["training"]["lr"]
-GAMMA = config["training"]["gamma"]
-BATCH_SIZE = config["training"]["batch_size"]
-BUFFER_SIZE = config["training"]["buffer_size"]
+LR = config["hyperparameters"]["lr"]
+GAMMA = config["hyperparameters"]["gamma"]
+BATCH_SIZE = config["hyperparameters"]["batch_size"]
+BUFFER_SIZE = config["hyperparameters"]["buffer_size"]
 
 class QNetwork(nn.Module):
     def __init__(self):
@@ -37,7 +37,6 @@ loss_fn = nn.SmoothL1Loss()
 
 epsilon_min = 0.05
 epsilon_decay = 0.998
-gamma = 0.99
 buffer = deque(maxlen=BUFFER_SIZE)
 
 def store(obs, action, reward, next_obs, done):
@@ -50,11 +49,9 @@ def policy(obs, env, epsilon):
     return torch.argmax(model(obs_t)).item()
 
 def train():
-    batch_size = 64
-
-    if len(buffer) < batch_size:
+    if len(buffer) < BATCH_SIZE:
         return
-    batch = random.sample(buffer, batch_size)
+    batch = random.sample(buffer, BATCH_SIZE)
     obs, actions, rewards, next_obs, dones = zip(*batch)
 
     obs = torch.tensor(obs, dtype=torch.float32)
@@ -65,7 +62,7 @@ def train():
 
     q = model(obs).gather(1, actions.unsqueeze(1)).squeeze()
     next_q = target_model(next_obs).max(1)[0]
-    target = rewards + gamma * next_q * (1 - dones)
+    target = rewards + GAMMA * next_q * (1 - dones)
 
     loss = loss_fn(q, target.detach())
     optimizer.zero_grad()
