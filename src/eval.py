@@ -30,7 +30,7 @@ from utils.seed import set_seed
 CONFIG_DEFAULT = os.path.join(PROJECT_ROOT, "configs/default.yaml")
 CONFIG_EVAL = os.path.join(PROJECT_ROOT, "configs/eval.yaml")
 
-DEFAULT_VIDEO_DIR = "stats/videos"
+DEFAULT_VIDEO_DIR = os.path.join("stats/videos")
 
 def resolve_model_path(model_path: str) -> Optional[Path]:
     requested_path = Path(model_path)
@@ -224,7 +224,7 @@ def main() -> None:
     # read final values from merged config
     num_episodes = cfg["eval"]["num_episodes"]
     model_path = cfg["eval"]["model_path"]
-    csv_output = cfg["eval"]["csv_output"]
+    csv_output = os.path.join(PROJECT_ROOT, cfg["eval"]["csv_output"])
     env_name = cfg["env"]["name"]
     render_mode = cfg["env"]["render_mode"]
     base_seed = cfg["seeds"]["base"]
