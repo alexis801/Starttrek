@@ -4,11 +4,21 @@ import torch.nn as nn
 import random
 from collections import deque
 import torch.optim as optim
+import sys
+import os
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../.."))
+
+sys.path.insert(0, PROJECT_ROOT)
+
+from utils.config import load_merged_config
+from utils.seed import set_seed
 from utils.config import load_merged_config
 from utils.seed import set_seed
 
 # Config default and utilities for loading and merging YAML configs
-config = load_merged_config("configs/default.yaml", "configs/train.yaml")
+config = load_merged_config("configs/default.yaml", "configs/train_double_dqn.yaml")
 
 #config
 LR = config["hyperparameters"]["lr"]
@@ -73,7 +83,8 @@ def train():
     dones = torch.tensor(dones, dtype=torch.float32)
 
     q = model(obs).gather(1, actions.unsqueeze(1)).squeeze()
-    next_q = target_model(next_obs).max(1)[0]
+    next_actions = model(next_obs).argmax(1).unsqueeze(1)
+    next_q = target_model(next_obs).gather(1, next_actions).squeeze()
     target = rewards + GAMMA * next_q * (1 - dones)
 
     loss = loss_fn(q, target.detach())
@@ -117,7 +128,7 @@ def main():
             print(episode)
 
     env.close()
-    torch.save(model.state_dict(), "model_dqn.pth")
+    torch.save(model.state_dict(), "models/model_double_dqn.pth")
 
 if __name__ == "__main__":
     main()

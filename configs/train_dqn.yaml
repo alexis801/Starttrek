@@ -5,5 +5,9 @@
 ## train.yaml
 ##
 
+training:
+  algo: "dqn"
+  model_out: "models/model_dqn.pth"
+
 seeds:
   base: 42

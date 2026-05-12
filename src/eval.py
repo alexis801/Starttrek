@@ -15,7 +15,7 @@ import gymnasium as gym
 import torch
 import torch.nn as nn
 
-from src.bad_modele.basic import basic_policy
+from bad_model.basic import basic_policy
 from utils.config import load_merged_config
 from utils.seed import set_seed
 
@@ -234,7 +234,7 @@ def main() -> None:
     try:
         env.action_space.seed(base_seed)
         model = None
-        if args.policy == "dqn":
+        if args.policy in ("dqn", "double_dqn"):
             model = load_model(model_path)
         results = evaluate_policy(env, num_episodes, base_seed, args.policy, model)
         print_episode_results(results)
