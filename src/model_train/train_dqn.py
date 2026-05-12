@@ -6,6 +6,7 @@ from collections import deque
 import torch.optim as optim
 import os
 import sys
+import numpy as np
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
@@ -76,11 +77,11 @@ def train():
     batch = random.sample(buffer, BATCH_SIZE)
     obs, actions, rewards, next_obs, dones = zip(*batch)
 
-    obs = torch.tensor(obs, dtype=torch.float32)
-    actions = torch.tensor(actions)
-    rewards = torch.tensor(rewards, dtype=torch.float32)
-    next_obs = torch.tensor(next_obs, dtype=torch.float32)
-    dones = torch.tensor(dones, dtype=torch.float32)
+    obs = torch.tensor(np.array(obs), dtype=torch.float32)
+    actions = torch.tensor(np.array(actions), dtype=torch.int64)
+    rewards = torch.tensor(np.array(rewards), dtype=torch.float32)
+    next_obs = torch.tensor(np.array(next_obs), dtype=torch.float32)
+    dones = torch.tensor(np.array(dones), dtype=torch.float32)
 
     q = model(obs).gather(1, actions.unsqueeze(1)).squeeze()
     next_q = target_model(next_obs).max(1)[0]
