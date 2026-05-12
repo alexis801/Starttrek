@@ -14,12 +14,10 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from utils.config import load_merged_config
 from utils.seed import set_seed
-from utils.config import load_merged_config
-from utils.seed import set_seed
 
 # Config default and utilities for loading and merging YAML configs
 CONFIG_DEFAULT = os.path.join(PROJECT_ROOT, "configs/default.yaml")
-CONFIG_TRAIN = os.path.join(PROJECT_ROOT, "configs/train_dqn.yaml")
+CONFIG_TRAIN = os.path.join(PROJECT_ROOT, "configs/train_double_dqn.yaml")
 
 config = load_merged_config(CONFIG_DEFAULT, CONFIG_TRAIN)
 
