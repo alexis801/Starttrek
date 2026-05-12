@@ -27,6 +27,8 @@ exploration:
   epsilon_decay: 0.998
 
 training:
-  num_episodes: 2000
+  algo: "DQN"
+  model_out: "models/model.pth"
+  num_episodes: 100
   warmup_steps: 5000
   target_update_every: 10

@@ -1,0 +1,6 @@
+training:
+  algo: "double_dqn"
+  model_out: "models/model_double_dqn.pth"
+
+seeds:
+  base: 42
