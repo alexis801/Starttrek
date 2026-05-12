@@ -15,12 +15,13 @@ import gymnasium as gym
 import torch
 import torch.nn as nn
 
-from src.bad_model.basic import basic_policy
+from bad_model.basic import basic_policy
 import os
 import sys
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = CURRENT_DIR
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../"))
+
 sys.path.insert(0, PROJECT_ROOT)
 
 from utils.config import load_merged_config
