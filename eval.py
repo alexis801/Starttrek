@@ -7,38 +7,37 @@
 
 import argparse
 import csv
+from pathlib import Path
+from dataclasses import dataclass
+from typing import Any, Optional
+
 import gymnasium as gym
 import torch
 import torch.nn as nn
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Optional
-from basic import *
 
-DEFAULT_SEED = 42
-DEFAULT_NUM_EPISODES = 5
-DEFAULT_MODEL_PATH = "model.pth"
-DEFAULT_RENDER_MODE = "rgb_array"
-DEFAULT_CSV_OUTPUT = "stats/csv/eval_results.csv"
+from basic import basic_policy
+from utils.config import load_merged_config
+from utils.seed import set_seed
+
 DEFAULT_VIDEO_DIR = "stats/videos"
+DEFAULT_POLICY = "dqn"
+
 
 def resolve_model_path(model_path: str) -> Optional[Path]:
     requested_path = Path(model_path)
     if requested_path.exists():
         return requested_path
 
-    if model_path == DEFAULT_MODEL_PATH:
-        fallback_paths = [
-            Path("models") / "model.pth",
-            Path("modele.pth"),
-            Path("modèle.pth"),
-            Path("models") / "modele.pth",
-            Path("models") / "modèle.pth",
-        ]
-        for fallback_path in fallback_paths:
-            if fallback_path.exists():
-                print(f"Using fallback model path '{fallback_path}'.")
-                return fallback_path
+    fallback_paths = [
+        Path("models") / "model.pth",
+        Path("model.pth"),
+        Path("modele.pth"),
+        Path("models") / "modele.pth",
+    ]
+    for fallback_path in fallback_paths:
+        if fallback_path.exists():
+            print(f"Using fallback model path '{fallback_path}'.")
+            return fallback_path
 
     return None
 
@@ -66,33 +65,38 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate a LunarLander-v3 policy."
     )
-    parser.add_argument("--model", default=DEFAULT_MODEL_PATH)
-    parser.add_argument("--episodes", type=int, default=DEFAULT_NUM_EPISODES)
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
-    parser.add_argument("--render-mode", default=DEFAULT_RENDER_MODE)
-    parser.add_argument("--csv-out", default=DEFAULT_CSV_OUTPUT)
-    parser.add_argument("--policy", choices=["basic", "dqn"], default="dqn",
-)
-    parser.add_argument(
-        "--record-video",
-        action="store_true",
-        help="Save one MP4 per episode under --video-dir (requires rgb_array).",
-    )
-    parser.add_argument(
-        "--video-dir",
-        default=DEFAULT_VIDEO_DIR,
-        help="Directory for RecordVideo output (created if missing).",
-    )
+    parser.add_argument("--model", default=None)
+    parser.add_argument("--episodes", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--render-mode", default=None)
+    parser.add_argument("--csv-out", default=None)
+    parser.add_argument("--policy", choices=["basic", "dqn"], default=DEFAULT_POLICY)
+    parser.add_argument("--record-video", action="store_true")
+    parser.add_argument("--video-dir", default=DEFAULT_VIDEO_DIR)
     return parser.parse_args()
 
 
-def create_env(
-    render_mode: str,
-    record_video: bool,
-    video_dir: str,
-) -> gym.Env:
+def resolve_config(args: argparse.Namespace) -> dict:
+    # Load default.yaml + eval.yaml (eval overrides default)
+    cfg = load_merged_config("configs/default.yaml", "configs/eval.yaml")
+
+    # Apply CLI overrides (CLI > YAML)
+    if args.model is not None:
+        cfg["eval"]["model_path"] = args.model
+    if args.episodes is not None:
+        cfg["eval"]["num_episodes"] = args.episodes
+    if args.csv_out is not None:
+        cfg["eval"]["csv_output"] = args.csv_out
+    if args.render_mode is not None:
+        cfg["env"]["render_mode"] = args.render_mode
+    if args.seed is not None:
+        cfg["seeds"]["base"] = args.seed
+    return cfg
+
+
+def create_env(env_name: str, render_mode: str, record_video: bool, video_dir: str) -> gym.Env:
     gym_render_mode = "rgb_array" if record_video else render_mode
-    env = gym.make("LunarLander-v3", render_mode=gym_render_mode)
+    env = gym.make(env_name, render_mode=gym_render_mode)
     if record_video:
         out = Path(video_dir)
         out.mkdir(parents=True, exist_ok=True)
@@ -104,6 +108,7 @@ def create_env(
             disable_logger=True,
         )
     return env
+
 
 def load_model(model_path: str) -> Optional[Any]:
     path = resolve_model_path(model_path)
@@ -126,25 +131,25 @@ def load_model(model_path: str) -> Optional[Any]:
         f"Unsupported model format at '{model_path}': {type(loaded_object).__name__}"
     )
 
-def select_action(
-    env: gym.Env, obs: Any, policy_type: str, model: Optional[Any],) -> int:
 
+def select_action(obs: Any, policy_type: str, model: Optional[Any]) -> int:
     if policy_type == "basic":
         return basic_policy(obs)
     if model is None:
-        raise ValueError("DQN policy selected but no model find")
+        raise ValueError("DQN policy selected but no model found.")
     obs_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
     with torch.no_grad():
         q_values = model(obs_tensor)
     return int(torch.argmax(q_values, dim=1).item())
 
-def run_episode(env: gym.Env, seed: int, policy_type: str, model: Optional[Any],) -> EpisodeResult:
+
+def run_episode(env: gym.Env, seed: int, policy_type: str, model: Optional[Any]) -> EpisodeResult:
     obs, _ = env.reset(seed=seed)
     total_reward = 0.0
     terminated = truncated = False
 
     while not (terminated or truncated):
-        action = select_action(env, obs, policy_type, model)
+        action = select_action(obs, policy_type, model)
         obs, reward, terminated, truncated, _ = env.step(action)
         total_reward += float(reward)
 
@@ -154,11 +159,14 @@ def run_episode(env: gym.Env, seed: int, policy_type: str, model: Optional[Any],
         truncated=truncated,
     )
 
-def evaluate_policy(env: gym.Env, num_episodes: int, base_seed: int, policy_type: str, model: Optional[Any],) -> list[EpisodeResult]:
+
+def evaluate_policy(env: gym.Env, num_episodes: int, base_seed: int,
+    policy_type: str, model: Optional[Any]) -> list[EpisodeResult]:
     results = []
     for episode_idx in range(num_episodes):
         results.append(run_episode(env, base_seed + episode_idx, policy_type, model))
     return results
+
 
 def print_episode_results(results: list[EpisodeResult]) -> None:
     for episode_idx, result in enumerate(results, start=1):
@@ -168,6 +176,7 @@ def print_episode_results(results: list[EpisodeResult]) -> None:
             f"terminated={result.terminated} "
             f"truncated={result.truncated}"
         )
+
 
 def print_summary(results: list[EpisodeResult]) -> None:
     mean_reward = sum(result.reward for result in results) / len(results)
@@ -200,23 +209,37 @@ def save_results_to_csv(results: list[EpisodeResult], output_path: str) -> None:
             )
     print(f"Saved episode results to '{output_file}'.")
 
+
 def main() -> None:
     args = parse_args()
-    if args.episodes <= 0:
-        raise ValueError("--episodes must be greater than 0")
-    if args.record_video and args.render_mode == "human":
-        print(
-            "Note: --record-video forces render_mode to rgb_array (no live window)."
-        )
-    env = create_env(args.render_mode, args.record_video, args.video_dir)
+    cfg = resolve_config(args)
+
+    # read final values from merged config
+    num_episodes = cfg["eval"]["num_episodes"]
+    model_path = cfg["eval"]["model_path"]
+    csv_output = cfg["eval"]["csv_output"]
+    env_name = cfg["env"]["name"]
+    render_mode = cfg["env"]["render_mode"]
+    base_seed = cfg["seeds"]["base"]
+
+    if num_episodes <= 0:
+        raise ValueError("eval.num_episodes must be greater than 0")
+    if args.record_video and render_mode == "human":
+        print("Note: --record-video forces render_mode to rgb_array (no live window).")
+
+    # reproducibility
+    set_seed(base_seed)
+
+    env = create_env(env_name, render_mode, args.record_video, args.video_dir)
     try:
+        env.action_space.seed(base_seed)
         model = None
         if args.policy == "dqn":
-            model = load_model(args.model)
-        results = evaluate_policy(env, args.episodes, args.seed, args.policy, model)
+            model = load_model(model_path)
+        results = evaluate_policy(env, num_episodes, base_seed, args.policy, model)
         print_episode_results(results)
         print_summary(results)
-        save_results_to_csv(results, args.csv_out)
+        save_results_to_csv(results, csv_output)
         if args.record_video:
             print(f"Videos saved under '{Path(args.video_dir).resolve()}'.")
     finally:
