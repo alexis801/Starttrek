@@ -8,7 +8,7 @@ import os
 import sys
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../.."))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
 
 sys.path.insert(0, PROJECT_ROOT)
 
@@ -16,8 +16,10 @@ from utils.config import load_merged_config
 from utils.seed import set_seed
 
 # Config default and utilities for loading and merging YAML configs
-config = load_merged_config("configs/default.yaml", "configs/train_dqn.yaml")
+CONFIG_DEFAULT = os.path.join(PROJECT_ROOT, "configs/default.yaml")
+CONFIG_TRAIN = os.path.join(PROJECT_ROOT, "configs/train_dqn.yaml")
 
+config = load_merged_config(CONFIG_DEFAULT, CONFIG_TRAIN)
 #config
 LR = config["hyperparameters"]["lr"]
 GAMMA = config["hyperparameters"]["gamma"]

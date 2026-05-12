@@ -18,7 +18,10 @@ from utils.config import load_merged_config
 from utils.seed import set_seed
 
 # Config default and utilities for loading and merging YAML configs
-config = load_merged_config("configs/default.yaml", "configs/train_double_dqn.yaml")
+CONFIG_DEFAULT = os.path.join(PROJECT_ROOT, "configs/default.yaml")
+CONFIG_TRAIN = os.path.join(PROJECT_ROOT, "configs/train_dqn.yaml")
+
+config = load_merged_config(CONFIG_DEFAULT, CONFIG_TRAIN)
 
 #config
 LR = config["hyperparameters"]["lr"]

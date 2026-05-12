@@ -16,8 +16,18 @@ import torch
 import torch.nn as nn
 
 from bad_model.basic import basic_policy
+import os
+import sys
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+
+sys.path.insert(0, PROJECT_ROOT)
 from utils.config import load_merged_config
 from utils.seed import set_seed
+
+CONFIG_DEFAULT = os.path.join(PROJECT_ROOT, "configs/default.yaml")
+CONFIG_TRAIN = os.path.join(PROJECT_ROOT, "configs/train_dqn.yaml")
 
 DEFAULT_VIDEO_DIR = "stats/videos"
 DEFAULT_POLICY = "dqn"
@@ -29,10 +39,8 @@ def resolve_model_path(model_path: str) -> Optional[Path]:
         return requested_path
 
     fallback_paths = [
-        Path("models") / "model.pth",
-        Path("model.pth"),
-        Path("modele.pth"),
-        Path("models") / "modele.pth",
+        Path("~/models/model_dqn.pth"),
+        Path("~/models/model_double_dqn.pth"),
     ]
     for fallback_path in fallback_paths:
         if fallback_path.exists():
@@ -78,9 +86,9 @@ def parse_args() -> argparse.Namespace:
 
 def resolve_config(args: argparse.Namespace) -> dict:
     # Load default.yaml + eval.yaml (eval overrides default)
-    cfg = load_merged_config("configs/default.yaml", "configs/eval.yaml")
+    cfg = load_merged_config(CONFIG_DEFAULT, CONFIG_TRAIN)
 
-    # Apply CLI overrides (CLI > YAML)
+    # Apply CLI overrides (CLI > YAML
     if args.model is not None:
         cfg["eval"]["model_path"] = args.model
     if args.episodes is not None:
