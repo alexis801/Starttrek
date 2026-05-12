@@ -15,7 +15,7 @@ import gymnasium as gym
 import torch
 import torch.nn as nn
 
-from basic import basic_policy
+from src.bad_modele.basic import basic_policy
 from utils.config import load_merged_config
 from utils.seed import set_seed
 
@@ -70,7 +70,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--render-mode", default=None)
     parser.add_argument("--csv-out", default=None)
-    parser.add_argument("--policy", choices=["basic", "dqn"], default=DEFAULT_POLICY)
+    parser.add_argument("--policy", choices=["basic", "dqn", "double_dqn"], default=DEFAULT_POLICY)
     parser.add_argument("--record-video", action="store_true")
     parser.add_argument("--video-dir", default=DEFAULT_VIDEO_DIR)
     return parser.parse_args()
