@@ -30,8 +30,6 @@ CONFIG_DEFAULT = os.path.join(PROJECT_ROOT, "configs/default.yaml")
 CONFIG_EVAL = os.path.join(PROJECT_ROOT, "configs/eval.yaml")
 
 DEFAULT_VIDEO_DIR = "stats/videos"
-DEFAULT_POLICY = "dqn"
-
 
 def resolve_model_path(model_path: str) -> Optional[Path]:
     requested_path = Path(model_path)
@@ -78,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--render-mode", default=None)
     parser.add_argument("--csv-out", default=None)
-    parser.add_argument("--policy", choices=["basic", "dqn", "double_dqn"], default=DEFAULT_POLICY)
+    parser.add_argument("--basic", action="store_true")
     parser.add_argument("--record-video", action="store_true")
     parser.add_argument("--video-dir", default=DEFAULT_VIDEO_DIR)
     return parser.parse_args()
@@ -140,8 +138,8 @@ def load_model(model_path: str) -> Optional[Any]:
     )
 
 
-def select_action(obs: Any, policy_type: str, model: Optional[Any]) -> int:
-    if policy_type == "basic":
+def select_action(obs: Any, basic: bool, model: Optional[Any]) -> int:
+    if basic:
         return basic_policy(obs)
     if model is None:
         raise ValueError("DQN policy selected but no model found.")
@@ -151,13 +149,13 @@ def select_action(obs: Any, policy_type: str, model: Optional[Any]) -> int:
     return int(torch.argmax(q_values, dim=1).item())
 
 
-def run_episode(env: gym.Env, seed: int, policy_type: str, model: Optional[Any]) -> EpisodeResult:
+def run_episode(env: gym.Env, seed: int, basic: bool, model: Optional[Any]) -> EpisodeResult:
     obs, _ = env.reset(seed=seed)
     total_reward = 0.0
     terminated = truncated = False
 
     while not (terminated or truncated):
-        action = select_action(obs, policy_type, model)
+        action = select_action(obs, basic, model)
         obs, reward, terminated, truncated, _ = env.step(action)
         total_reward += float(reward)
 
@@ -169,10 +167,10 @@ def run_episode(env: gym.Env, seed: int, policy_type: str, model: Optional[Any])
 
 
 def evaluate_policy(env: gym.Env, num_episodes: int, base_seed: int,
-    policy_type: str, model: Optional[Any]) -> list[EpisodeResult]:
+    basic: bool, model: Optional[Any]) -> list[EpisodeResult]:
     results = []
     for episode_idx in range(num_episodes):
-        results.append(run_episode(env, base_seed + episode_idx, policy_type, model))
+        results.append(run_episode(env, base_seed + episode_idx, basic, model))
     return results
 
 
@@ -242,9 +240,9 @@ def main() -> None:
     try:
         env.action_space.seed(base_seed)
         model = None
-        if args.policy in ("dqn", "double_dqn"):
+        if not args.basic:
             model = load_model(model_path)
-        results = evaluate_policy(env, num_episodes, base_seed, args.policy, model)
+        results = evaluate_policy(env, num_episodes, base_seed, args.basic, model)
         print_episode_results(results)
         print_summary(results)
         save_results_to_csv(results, csv_output)
