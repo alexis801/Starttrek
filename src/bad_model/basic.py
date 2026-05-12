@@ -2,7 +2,7 @@
 ## EPITECH PROJECT, 2026
 ## starttrek
 ## File description:
-## heuristic
+## basic logic
 ##
 
 def basic_policy(obs):

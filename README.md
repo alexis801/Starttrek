@@ -29,28 +29,37 @@ L’objectif final est d’atteindre un score moyen ≥ 200 sur 100 épisodes.
 
 ## 📁 Structure du projet
 ```
-│── train.py # Entraînement
-├── eval.py # Évaluation
-├── configs/ # Fichier YAML (env, algo, hypers, seeds)
-    |── default.yaml # Paramétres par défaut
-    |── train.yaml # Overide pour entrainement
-    |── eval.yaml # Overide pour eval
-├── models/ # Modèles sauvegardés (.pth)
-├── stats/  # Graphiques de la durée des épisodes, statistiques sur les causes d'arrêt, vidéos.
-    |── Csv/ Résultat des épisodes
-    |── Plots/ Graphiques (reward, epsilon ...)
-    |── Videos/ #Vidéo des épisodes
-|──Utils/
-    |── config.py # Chargement et fusion des configs yaml
-    |── seed.py # Reproducibilité (random, torch, numpy)
-└── README.md
+│-- train.py # Entraînement
+├-- eval.py # Évaluation
+├-- configs/ # Fichier YAML (env, algo, hypers, seeds)
+    |-- default.yaml # Paramètres par défaut
+    |-- train_dqn.yaml # Overide pour entrainement
+    |-- train_double_dqn.yaml
+    |-- eval.yaml # Overide pour eval
+├-- models/ # Modèles sauvegardés (.pth)
+├-- src
+    |-- bad_model
+        |-- basic.py # modèle manuelle
+    |-- model_train
+        |-- train_double_dqn.py
+        |-- train_dqn.py
+    |-- eval.py
+├-- stats/  # Graphiques de la durée des épisodes, statistiques sur les causes d'arrêt, vidéos.
+    |-- Csv/ Résultat des épisodes
+    |-- Plots/ Graphiques (reward, epsilon ...)
+    |-- Videos/ #Vidéo des épisodes
+|-- Utils/
+    |-- config.py # Chargement et fusion des configs yaml
+    |-- seed.py # Reproducibilité (random, torch, numpy)
+|-- requirement.txt
+└-- README.md
 ```
 
 ---
 
 ## ⚙️ Installation (Linux)
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv env
+source env/bin/activate
 pip install -r requirements.txt
 
 ---
@@ -61,19 +70,22 @@ pip install -r requirements.txt
 Entrainer l'agent:
 
 ```
-python3 train.py
+python3 train_dqn.py
+python3 train_double_dqn.py
 ```
 
 Évaluer un modèle :
 
 ```
 python3 eval.py --model models/model.pth --episodes 100
+python3 eval.py --basic --episodes 100
 ```
 
 Options eval :
 
 ```
---model : chemin du modéle
+--model : chemin du modèle
+--basic : tester avec une logique manuelle via une importation d'un fichier python
 --épisodes : nombred'épisodes
 --seed : seed de départ
 --render-mode : rgb_array | human
