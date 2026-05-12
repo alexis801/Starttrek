@@ -6,6 +6,7 @@ from collections import deque
 import torch.optim as optim
 import sys
 import os
+import numpy as np
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../.."))

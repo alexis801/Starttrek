@@ -10,7 +10,7 @@
 
 eval:
   num_episodes: 100
-  model_path: "models/model_dqn.pth"
+  model_path: "models/model.pth"
   csv_output: "stats/csv/eval_results.csv"
 
 env:

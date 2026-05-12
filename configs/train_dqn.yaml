@@ -8,6 +8,7 @@
 training:
   algo: "dqn"
   model_out: "models/model_dqn.pth"
+  num_episodes: 1200
 
 seeds:
   base: 42

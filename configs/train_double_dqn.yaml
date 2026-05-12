@@ -1,6 +1,15 @@
+##
+## EPITECH PROJECT, 2025
+## star-trek
+## File description:
+## train_double_dqn.yaml
+##
+
 training:
   algo: "double_dqn"
   model_out: "models/model_double_dqn.pth"
+  num_episodes: 1000
+  target_update_every: 5
 
 seeds:
   base: 42
