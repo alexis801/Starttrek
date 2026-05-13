@@ -11,11 +11,13 @@ python3 src/model_train/train_double_dqn.py
 
 # eval DQN
 echo "Evaluating DQN..."
-python3 src/eval.py --model models/model_dqn.pth --csv-out stats/csv/eval_dqn.csv
+mkdir -p stats/videos/dqn
+python3 src/eval.py --model models/model_dqn.pth --csv-out stats/csv/eval_dqn.csv --record-video --video-dir stats/videos/dqn
 
 # eval Double DQN
 echo "Evaluating Double DQN..."
-python3 src/eval.py --model models/model_double_dqn.pth --csv-out stats/csv/eval_double_dqn.csv
+mkdir -p stats/videos/double_dqn
+python3 src/eval.py --model models/model_double_dqn.pth --csv-out stats/csv/eval_double_dqn.csv --record-video --video-dir stats/videos/double_dqn
 
 echo "Generating plots..."
 mkdir -p stats/plots/dqn stats/plots/double_dqn
