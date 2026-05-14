@@ -82,7 +82,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--video-dir", default=DEFAULT_VIDEO_DIR)
     return parser.parse_args()
 
-
 def resolve_config(args: argparse.Namespace) -> dict:
     # Load default.yaml + eval.yaml (eval overrides default)
     cfg = load_merged_config(CONFIG_DEFAULT, CONFIG_EVAL)

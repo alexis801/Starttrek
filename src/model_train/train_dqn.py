@@ -7,6 +7,8 @@ import torch.optim as optim
 import os
 import sys
 import numpy as np
+from pathlib import Path
+from save_stat import plot_epsilon, plot_rewards, plot_loss
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
@@ -62,6 +64,8 @@ loss_fn = nn.SmoothL1Loss()
 
 buffer = deque(maxlen=BUFFER_SIZE)
 
+
+
 def store(obs, action, reward, next_obs, done):
     buffer.append((obs, action, reward, next_obs, done))
 
@@ -92,11 +96,13 @@ def train():
     loss.backward()
     torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     optimizer.step()
+    return loss.item()
 
 def episode_loop(env, epsilon):
     obs, _ = env.reset()
     done = False
     total = 0
+    episode_losses = []
 
     while not done:
         action = policy(obs, env, epsilon)
@@ -106,9 +112,12 @@ def episode_loop(env, epsilon):
         obs = next_obs
         total += reward
         if len(buffer) > WARMUP_STEPS:
-            train()
+            loss = train()
+            if loss is not None:
+                episode_losses.append(loss)
 
-    return total
+    mean_loss = np.mean(episode_losses) if episode_losses else 0
+    return total, mean_loss
 
 def main():
     set_seed(SEED)
@@ -117,10 +126,16 @@ def main():
     env.reset(seed=SEED)
     env.action_space.seed(SEED)
     rewards = []
+    rewards_history = []
+    epsilon_history = []
+    loss_history = []
 
     for episode in range(NUM_EPISODES):
-        r = episode_loop(env, epsilon)
+        r, mean_loss = episode_loop(env, epsilon)
         rewards.append(r)
+        rewards_history.append(r)
+        epsilon_history.append(epsilon)
+        loss_history.append(mean_loss)
         epsilon = max(EPS_MIN, epsilon * EPS_DECAY)
 
         if episode % TARGET_UPDATE_EVERY == 0:
@@ -129,6 +144,9 @@ def main():
 
     env.close()
     torch.save(model.state_dict(), "models/model_dqn.pth")
+    plot_rewards(rewards_history)
+    plot_epsilon(epsilon_history)
+    plot_loss(loss_history)
 
 if __name__ == "__main__":
     main()
