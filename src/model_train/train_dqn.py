@@ -7,8 +7,7 @@ import torch.optim as optim
 import os
 import sys
 import numpy as np
-from pathlib import Path
-from save_stat import plot_epsilon, plot_rewards, plot_loss
+from save_stat import plot_epsilon, plot_rewards, plot_loss, save_csv
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
@@ -125,14 +124,12 @@ def main():
     env = gym.make(config["env"]["name"])
     env.reset(seed=SEED)
     env.action_space.seed(SEED)
-    rewards = []
     rewards_history = []
     epsilon_history = []
     loss_history = []
 
     for episode in range(NUM_EPISODES):
         r, mean_loss = episode_loop(env, epsilon)
-        rewards.append(r)
         rewards_history.append(r)
         epsilon_history.append(epsilon)
         loss_history.append(mean_loss)
@@ -147,6 +144,7 @@ def main():
     plot_rewards(rewards_history)
     plot_epsilon(epsilon_history)
     plot_loss(loss_history)
+    save_csv(rewards_history, epsilon_history, loss_history)
 
 if __name__ == "__main__":
     main()
