@@ -58,9 +58,7 @@ L’objectif final est d’atteindre un score moyen ≥ 200 sur 100 épisodes.
 ---
 
 ## ⚙️ Installation (Linux)
-python3 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
+python3 -m venv env && source env/bin/activate && pip install -r requirements.txt
 
 ---
 
